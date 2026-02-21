@@ -8,6 +8,7 @@ from pywm.core.window import Client, Frame
 from pywm.core.layout.tile import apply_tiling_layout
 from pywm.x11.atoms import WM_DELETE_WINDOW, WM_PROTOCOLS
 from pywm.ui import statusbar
+from pywm.core import tags
 
 
 CLIENTS = {}
@@ -15,14 +16,25 @@ FRAMES = {}
 FOCUSED_FRAME = None
 DESTROY_FRAME = None
 
+
 def prepare_manager():
     statusbar.create_bar()
     statusbar.draw("PYWM")
 
 
 def apply_layout():
-    # NOTE: fix the ugly args for screen geometry
-    apply_tiling_layout(CLIENTS)
+    visible_clients = {}
+
+    for id, c in CLIENTS.items():
+
+        if tags.is_visible(c):
+            visible_clients[id] = c
+            c.frame.window.map()
+        else:
+            c.frame.window.unmap()
+
+    apply_tiling_layout(visible_clients)
+
     DISPLAY.sync()
 
 
@@ -104,7 +116,7 @@ def manage_client(client_window):
     client_window.map()
     DISPLAY.sync()
 
-    client = Client(client_window)
+    client = Client(client_window, tags=tags.CURRENT_TAG)
     frame = Frame(frame_window, client)
     client.frame = frame
     frame.client = client
@@ -115,7 +127,7 @@ def manage_client(client_window):
     CLIENTS[client_window.id] = client
     FRAMES[frame_window.id] = frame
 
-    apply_layout()
+    # apply_layout()
 
     return client
 
@@ -126,6 +138,7 @@ def handle_map_request(event):
     window.map()
     DISPLAY.sync()
     manage_client(window)
+    apply_layout()
 
 
 def handle_enter_notify(event):
@@ -196,4 +209,13 @@ def handle_destroy_notify(event):
     CLIENTS.pop(client_id, None)
 
     if len(FRAMES):
+        apply_layout()
+
+
+def handle_button_press(event):
+    tag = statusbar.check_tag_pressed(event)
+
+    if tag:
+        tags.set_tag(tag)
+        statusbar.draw("PYWM")
         apply_layout()
