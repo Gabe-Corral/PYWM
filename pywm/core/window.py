@@ -5,6 +5,7 @@ from Xlib.xobject.drawable import Window
 @dataclass
 class Client:
     window: Window
+    tags: int
     # frame: Frame
 
 

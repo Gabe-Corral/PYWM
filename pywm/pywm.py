@@ -4,6 +4,8 @@ from pywm.x11.connection import ROOT, DISPLAY
 from pywm.core import manager
 from pywm.core.keys import init_keybindings, handle_key
 from pywm.core.process import setup_signal_handlers
+from pywm.core import cursor
+from pywm.ui import statusbar
 
 
 def run():
@@ -13,15 +15,18 @@ def run():
     manager.prepare_manager()
 
     try:
-        ROOT.change_attributes(event_mask=(
-            X.SubstructureRedirectMask |
-            X.SubstructureNotifyMask   |
-            X.ButtonPressMask          |
-            X.PointerMotionMask        |
-            X.EnterWindowMask          |
-            X.LeaveWindowMask          |
-            X.KeyPressMask
-        ))
+        ROOT.change_attributes(
+            event_mask=(
+                X.SubstructureRedirectMask |
+                X.SubstructureNotifyMask   |
+                X.ButtonPressMask          |
+                X.PointerMotionMask        |
+                X.EnterWindowMask          |
+                X.LeaveWindowMask          |
+                X.KeyPressMask
+            ),
+            cursor=cursor.CURSOR
+        )
         DISPLAY.sync()
     except BadAccess:
         raise SystemExit("Another window manager already owns SubstructureRedirect on this DISPLAY.")
@@ -48,6 +53,8 @@ def run():
         elif event.type == X.DestroyNotify:
             # print("DESTORY")
             manager.handle_destroy_notify(event)
+        elif event.type == X.ButtonPress:
+            manager.handle_button_press(event)
 
 
 if __name__=="__main__":
