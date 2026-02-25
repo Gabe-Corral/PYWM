@@ -5,7 +5,7 @@ from Xlib.error import BadWindow
 from pywm.x11.connection import ROOT, DISPLAY, SCREEN
 from pywm.ui import theme
 from pywm.core.window import Client, Frame
-from pywm.core.layout.tile import apply_tiling_layout
+from pywm.core.layout import tile
 from pywm.x11.atoms import WM_DELETE_WINDOW, WM_PROTOCOLS
 from pywm.ui import statusbar
 from pywm.core import tags
@@ -33,7 +33,7 @@ def apply_layout():
         else:
             c.frame.window.unmap()
 
-    apply_tiling_layout(visible_clients)
+    tile.apply_tiling_layout(visible_clients)
 
     DISPLAY.sync()
 
@@ -218,4 +218,18 @@ def handle_button_press(event):
     if tag:
         tags.set_tag(tag)
         statusbar.draw("PYWM")
+        apply_layout()
+
+
+def resize_left():
+    tile.MASTER_RATIO = max(0.1, tile.MASTER_RATIO - 0.05)
+    print(tile.MASTER_RATIO)
+    if len(FRAMES) > 1:
+        apply_layout()
+
+
+def resize_right():
+    tile.MASTER_RATIO = min(0.9, tile.MASTER_RATIO + 0.05)
+    print(tile.MASTER_RATIO)
+    if len(FRAMES) > 1:
         apply_layout()

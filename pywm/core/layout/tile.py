@@ -1,7 +1,6 @@
 from pywm.x11.connection import SCREEN
 from pywm.ui import theme
 
-
 # def apply_tiling_layout(clients, master_ratio=0.6):
 #     clients = [i for i in clients.values()]
 
@@ -55,7 +54,10 @@ from pywm.ui import theme
 #         )
 
 
-def apply_tiling_layout(clients, master_ratio=0.6):
+MASTER_RATIO = 0.6
+
+
+def apply_tiling_layout(clients):
     clients = list(clients.values())
     if not clients:
         return
@@ -95,7 +97,7 @@ def apply_tiling_layout(clients, master_ratio=0.6):
 
     # Horizontal split with an INNER gap between master and stack
     uw2 = uw - inner
-    master_w = int(uw2 * master_ratio)
+    master_w = int(uw2 * MASTER_RATIO)
     stack_w = uw2 - master_w
 
     master_x = ux
