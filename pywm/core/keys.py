@@ -9,6 +9,8 @@ RETURN = XK.string_to_keysym("Return")
 C = XK.string_to_keysym("c")
 W = XK.string_to_keysym("w")
 Q = XK.string_to_keysym("q")
+H = XK.string_to_keysym("h")
+L = XK.string_to_keysym("l")
 
 # PRESSED = set()
 
@@ -17,6 +19,8 @@ def init_keybindings():
     grab_key(C, MOD)
     grab_key(W, MOD)
     grab_key(Q, MOD)
+    grab_key(H, MOD)
+    grab_key(L, MOD)
 
 
 def grab_key(keysym, modmask):
@@ -52,3 +56,7 @@ def handle_key(event):
         manager.close_window()
     elif keysym == W:
         spawn_application("thunar")
+    elif keysym == H:
+        manager.resize_left()
+    elif keysym == L:
+        manager.resize_right()
