@@ -222,14 +222,14 @@ def handle_button_press(event):
 
 
 def resize_left():
-    tile.MASTER_RATIO = max(0.1, tile.MASTER_RATIO - 0.05)
-    print(tile.MASTER_RATIO)
+    tags.set_master_ratio(tags.get_master_ratio() - 0.05)
+
     if len(FRAMES) > 1:
         apply_layout()
 
 
 def resize_right():
-    tile.MASTER_RATIO = min(0.9, tile.MASTER_RATIO + 0.05)
-    print(tile.MASTER_RATIO)
+    tags.set_master_ratio(tags.get_master_ratio() + 0.05)
+
     if len(FRAMES) > 1:
         apply_layout()
