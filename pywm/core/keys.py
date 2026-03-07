@@ -2,60 +2,59 @@ from Xlib import X, XK
 from pywm.x11.connection import DISPLAY, ROOT
 from pywm.core.actions import spawn_application
 
-MOD = X.Mod4Mask  # Super key
-# MOD = X.ControlMask
-RETURN = XK.string_to_keysym("Return")
-C = XK.string_to_keysym("c")
-W = XK.string_to_keysym("w")
-Q = XK.string_to_keysym("q")
-H = XK.string_to_keysym("h")
-L = XK.string_to_keysym("l")
 
-# PRESSED = set()
+class KeyHandler:
+    MOD = X.Mod4Mask  # Super key
 
-def init_keybindings():
-    grab_key(RETURN, MOD)
-    grab_key(C, MOD)
-    grab_key(W, MOD)
-    grab_key(Q, MOD)
-    grab_key(H, MOD)
-    grab_key(L, MOD)
+    def __init__(self, window_manager):
+        self.wm = window_manager
 
+        self.RETURN = XK.string_to_keysym("Return")
+        self.C = XK.string_to_keysym("c")
+        self.W = XK.string_to_keysym("w")
+        self.Q = XK.string_to_keysym("q")
+        self.H = XK.string_to_keysym("h")
+        self.L = XK.string_to_keysym("l")
 
-def grab_key(keysym, modmask):
-    keycode = DISPLAY.keysym_to_keycode(keysym)
+    def init_keybindings(self):
+        self._grab_key(self.RETURN, self.MOD)
+        self._grab_key(self.C, self.MOD)
+        self._grab_key(self.W, self.MOD)
+        self._grab_key(self.Q, self.MOD)
+        self._grab_key(self.H, self.MOD)
+        self._grab_key(self.L, self.MOD)
 
-    extra_mods = [0, X.LockMask, X.Mod2Mask, X.LockMask | X.Mod2Mask]
+    def _grab_key(self, keysym, modmask):
+        keycode = DISPLAY.keysym_to_keycode(keysym)
 
-    for em in extra_mods:
-        ROOT.grab_key(
-            keycode,
-            modmask | em,
-            False,  # deliver to WM even when a client is focused
-            X.GrabModeAsync,
-            X.GrabModeAsync
-        )
+        extra_mods = [0, X.LockMask, X.Mod2Mask, X.LockMask | X.Mod2Mask]
 
-    DISPLAY.sync()
+        for em in extra_mods:
+            ROOT.grab_key(
+                keycode,
+                modmask | em,
+                False,
+                X.GrabModeAsync,
+                X.GrabModeAsync,
+            )
 
+        DISPLAY.sync()
 
-def handle_key(event, window_manager):
-    keysym = DISPLAY.keycode_to_keysym(event.detail, 0)
+    def handle_key(self, event):
+        keysym = DISPLAY.keycode_to_keysym(event.detail, 0)
 
-    if not (event.state & MOD):
-        return
+        if not (event.state & self.MOD):
+            return
 
-    # keyname = XK.keysym_to_string(keysym)
-
-    if keysym == RETURN:
-        spawn_application("alacritty")
-    elif keysym == Q:
-        print("Super+Q pressed")
-    elif keysym == C:
-        window_manager.close_window()
-    elif keysym == W:
-        spawn_application("thunar")
-    elif keysym == H:
-        window_manager.resize_left()
-    elif keysym == L:
-        window_manager.resize_right()
+        if keysym == self.RETURN:
+            spawn_application("alacritty")
+        elif keysym == self.Q:
+            print("Super+Q pressed")
+        elif keysym == self.C:
+            self.wm.close_window()
+        elif keysym == self.W:
+            spawn_application("thunar")
+        elif keysym == self.H:
+            self.wm.resize_left()
+        elif keysym == self.L:
+            self.wm.resize_right()

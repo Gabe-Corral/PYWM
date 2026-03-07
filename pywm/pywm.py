@@ -2,17 +2,17 @@ from Xlib import X
 from Xlib.error import BadAccess
 from pywm.x11.connection import ROOT, DISPLAY
 from pywm.core.manager import WindowManager
-from pywm.core.keys import init_keybindings, handle_key
+from pywm.core.keys import KeyHandler
 from pywm.core.process import setup_signal_handlers
 from pywm.core import cursor
 from pywm.ui import statusbar
 
 
 def run():
-    # NOTE: move this
-    init_keybindings()
     setup_signal_handlers()
     window_manager = WindowManager()
+    key_handler = KeyHandler(window_manager)
+    key_handler.init_keybindings()
     window_manager.prepare_manager()
 
     try:
@@ -45,8 +45,7 @@ def run():
             pass
             # print("LEAVE")
         elif event.type == X.KeyPress:
-            handle_key(event, window_manager)
-            pass
+            key_handler.handle_key(event)
         elif event.type == X.KeyRelease:
             pass
             # print("RELEASE")

@@ -1,13 +1,10 @@
 from Xlib import X
-from pywm.x11.connection import DISPLAY, ROOT, SCREEN
+from dataclasses import dataclass
+
+from pywm.x11.connection import DISPLAY, ROOT
 from pywm.ui import theme
 from pywm.core import cursor
 
-from dataclasses import dataclass
-
-BAR = None
-
-BUTTONS = []
 
 @dataclass
 class Button:
@@ -18,87 +15,96 @@ class Button:
     tag: int
 
 
-def create_bar():
-    global BAR
-    sw = SCREEN.width_in_pixels
-    sh = SCREEN.height_in_pixels
+class StatusBar:
+    def __init__(self, x, y, width, height, tags):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.tags = tags
 
-    BAR = ROOT.create_window(
-        0, sh - theme.BAR_HEIGHT,
-        sw, theme.BAR_HEIGHT,
-        0,
-        SCREEN.root_depth,
-        X.InputOutput,
-        X.CopyFromParent,
-        override_redirect=True,
-        background_pixel=theme.BAR_BG,
-        cursor=cursor.CURSOR,
-        event_mask=(
-            X.ExposureMask |
-            X.StructureNotifyMask |
-            X.ButtonPressMask |
-            X.PointerMotionMask
+        self.window = None
+        self.buttons = []
+
+        self._create_window()
+
+    def _create_window(self):
+        self.window = ROOT.create_window(
+            self.x,
+            self.y,
+            self.width,
+            self.height,
+            0,
+            DISPLAY.screen().root_depth,
+            X.InputOutput,
+            X.CopyFromParent,
+            override_redirect=True,
+            background_pixel=theme.BAR_BG,
+            cursor=cursor.CURSOR,
+            event_mask=(
+                X.ExposureMask
+                | X.StructureNotifyMask
+                | X.ButtonPressMask
+                | X.PointerMotionMask
+            ),
         )
-    )
-    BAR.map()
-    DISPLAY.sync()
-    return BAR
 
+        self.window.map()
+        DISPLAY.sync()
 
-# def draw(text):
-#     if BAR is None:
-#         return
+    def draw(self, text):
+        if self.window is None:
+            return
 
-#     BAR.clear_area()
-#     gc = BAR.create_gc(foreground=theme.BAR_FG)
-#     BAR.draw_text(gc, 8, theme.BAR_TEXT_BASELINE, text)
-#     DISPLAY.flush()
+        self.buttons = []
+        self.window.clear_area()
 
+        gc = self.window.create_gc(foreground=theme.BAR_FG)
+        agc = self.window.create_gc(foreground=theme.BAR_ACTIVE_TAG)
 
-def draw(text, tags):
-    global BUTTONS
-    if BAR is None:
-        return
+        x = 0
+        btn_w = 28
+        btn_h = self.height
 
-    BUTTONS = []
-    BAR.clear_area()
+        for i in range(self.tags.num_tags):
+            mask = 1 << i
 
-    gc = BAR.create_gc(foreground=theme.BAR_FG)
-    agc = BAR.create_gc(foreground=theme.BAR_ACTIVE_TAG)
+            if self.tags.current_tag & mask:
+                self.window.rectangle(agc, x, 0, btn_w - 1, btn_h - 1)
+            else:
+                self.window.rectangle(gc, x, 0, btn_w - 1, btn_h - 1)
 
-    pad = 0
-    x = pad
-    y = 0
-    h = theme.BAR_HEIGHT
+            self.window.draw_text(
+                gc,
+                x + 10,
+                theme.BAR_TEXT_BASELINE,
+                str(i + 1),
+            )
 
-    btn_w = 28
-    btn_h = h
+            self.buttons.append(
+                Button(x=x, y=0, w=btn_w, h=btn_h, tag=mask)
+            )
 
-    for i in range(tags.num_tags):
-        mask = 1 << i
+            x += btn_w
 
-        if tags.current_tag & mask:
-            BAR.rectangle(agc, x, 0, btn_w - 1, btn_h - 1)
-        else:
-            BAR.rectangle(gc, x, 0, btn_w - 1, btn_h - 1)
+        self.window.draw_text(
+            gc,
+            x + 12,
+            theme.BAR_TEXT_BASELINE,
+            text or "",
+        )
 
-        BAR.draw_text(gc, x + 10, theme.BAR_TEXT_BASELINE, str(i + 1))
+        DISPLAY.flush()
 
-        BUTTONS.append(Button(x=x, y=y, w=btn_w, h=btn_h, tag=mask))
+    def check_tag_pressed(self, event):
+        if self.window is None or event.window.id != self.window.id:
+            return None
 
-        x += btn_w
+        for b in self.buttons:
+            if (
+                b.x <= event.event_x < b.x + b.w
+                and b.y <= event.event_y < b.y + b.h
+            ):
+                return b.tag
 
-    BAR.draw_text(gc, x + 12, theme.BAR_TEXT_BASELINE, text)
-
-DISPLAY.flush()
-
-
-def check_tag_pressed(event):
-    if BAR is None or event.window.id != BAR.id:
         return None
-
-    for b in BUTTONS:
-        if b.x <= event.event_x < b.x + b.w and b.y <= event.event_y < b.y + b.h:
-            return b.tag
-
-    return None
