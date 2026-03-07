@@ -2,7 +2,6 @@ from Xlib import X
 from pywm.x11.connection import DISPLAY, ROOT, SCREEN
 from pywm.ui import theme
 from pywm.core import cursor
-from pywm.core import tags
 
 from dataclasses import dataclass
 
@@ -56,7 +55,7 @@ def create_bar():
 #     DISPLAY.flush()
 
 
-def draw(text):
+def draw(text, tags):
     global BUTTONS
     if BAR is None:
         return
@@ -75,10 +74,10 @@ def draw(text):
     btn_w = 28
     btn_h = h
 
-    for i in range(tags.NUM_TAGS):
+    for i in range(tags.num_tags):
         mask = 1 << i
 
-        if tags.CURRENT_TAG & mask:
+        if tags.current_tag & mask:
             BAR.rectangle(agc, x, 0, btn_w - 1, btn_h - 1)
         else:
             BAR.rectangle(gc, x, 0, btn_w - 1, btn_h - 1)
@@ -102,4 +101,4 @@ def check_tag_pressed(event):
         if b.x <= event.event_x < b.x + b.w and b.y <= event.event_y < b.y + b.h:
             return b.tag
 
-    return tags.CURRENT_TAG
+    return None

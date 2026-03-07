@@ -1,6 +1,5 @@
 from pywm.x11.connection import SCREEN
 from pywm.ui import theme
-from pywm.core import tags
 
 # def apply_tiling_layout(clients, master_ratio=0.6):
 #     clients = [i for i in clients.values()]
@@ -55,7 +54,7 @@ from pywm.core import tags
 #         )
 
 
-def apply_tiling_layout(clients):
+def apply_tiling_layout(clients, tags):
     clients = list(clients.values())
     if not clients:
         return

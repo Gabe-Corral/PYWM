@@ -6,230 +6,197 @@ from pywm.x11.connection import ROOT, DISPLAY, SCREEN
 from pywm.ui import theme
 from pywm.core.window import Client, Frame
 from pywm.core.layout import tile
-from pywm.x11.atoms import WM_DELETE_WINDOW, WM_PROTOCOLS
+from pywm.x11.atoms import WM_DELETE_WINDOW, WM_PROTOCOLS, NET_WM_NAME, UTF8_STRING
 from pywm.ui import statusbar
-from pywm.core import tags
+from pywm.core.tags import Tags
 
 
-CLIENTS = {}
-FRAMES = {}
-FOCUSED_FRAME = None
-DESTROY_FRAME = None
+class WindowManager:
+    def __init__(self):
+        self.clients = {}
+        self.frames = {}
+        self.focused_frame = None
+        self.destroy_frame = None
+        self.tags = Tags()
 
+    def prepare_manager(self):
+        statusbar.create_bar()
+        statusbar.draw("PYWM", self.tags)
 
-def prepare_manager():
-    statusbar.create_bar()
-    statusbar.draw("PYWM")
+    def apply_layout(self):
+        visible_clients = {}
 
+        for id, c in self.clients.items():
+            if self.tags.is_visible(c):
+                visible_clients[id] = c
+                c.frame.window.map()
+            else:
+                c.frame.window.unmap()
 
-def apply_layout():
-    visible_clients = {}
+        tile.apply_tiling_layout(visible_clients, self.tags)
+        DISPLAY.sync()
 
-    for id, c in CLIENTS.items():
+    def get_child_of_frame(self, frame):
+        tree = frame.query_tree()
+        if tree.children:
+            return tree.children[0]
+        return None
 
-        if tags.is_visible(c):
-            visible_clients[id] = c
-            c.frame.window.map()
-        else:
-            c.frame.window.unmap()
+    def unfocus(self):
+        ROOT.set_input_focus(
+            X.RevertToPointerRoot,
+            X.CurrentTime
+        )
+        DISPLAY.sync()
 
-    tile.apply_tiling_layout(visible_clients)
-
-    DISPLAY.sync()
-
-
-def get_child_of_frame(frame):
-    tree = frame.query_tree()
-    if tree.children:
-        return tree.children[0]
-    return None
-
-
-def unfocus():
-    ROOT.set_input_focus(
-        X.RevertToPointerRoot,
-        X.CurrentTime
-    )
-    DISPLAY.sync()
-
-
-def focus(window):
-    try:
-        if window.get_attributes().map_state != X.IsViewable:
-            return
-        window.set_input_focus(X.RevertToPointerRoot, X.CurrentTime)
-        statusbar.draw(get_window_name(window))
-        DISPLAY.flush()
-    except BadWindow:
-        return
-    # DISPLAY.sync()
-
-
-def get_window_name(window):
-    NET_WM_NAME = DISPLAY.intern_atom('_NET_WM_NAME')
-    UTF8_STRING = DISPLAY.intern_atom('UTF8_STRING')
-
-    prop = window.get_full_property(NET_WM_NAME, UTF8_STRING)
-    if prop and prop.value:
+    def focus(self, window):
         try:
-            return prop.value.decode('utf-8', errors='replace')
-        except Exception:
+            if window.get_attributes().map_state != X.IsViewable:
+                return
+            window.set_input_focus(X.RevertToPointerRoot, X.CurrentTime)
+            statusbar.draw(self.get_window_name(window), self.tags)
+            DISPLAY.flush()
+        except BadWindow:
+            return
+
+    def get_window_name(self, window):
+        prop = window.get_full_property(NET_WM_NAME, UTF8_STRING)
+        if prop and prop.value:
+            try:
+                return prop.value.decode('utf-8', errors='replace')
+            except Exception:
+                return str(prop.value)
+
+        WM_NAME = DISPLAY.intern_atom('WM_NAME')
+        prop = window.get_full_property(WM_NAME, X.AnyPropertyType)
+        if prop and prop.value:
+            if isinstance(prop.value, bytes):
+                return prop.value.decode('latin1', errors='replace')
             return str(prop.value)
 
-    WM_NAME = DISPLAY.intern_atom('WM_NAME')
-    prop = window.get_full_property(WM_NAME, X.AnyPropertyType)
-    if prop and prop.value:
-        if isinstance(prop.value, bytes):
-            return prop.value.decode('latin1', errors='replace')
-        return str(prop.value)
+        return None
 
-    return None
+    def manage_client(self, client_window):
+        attrs = client_window.get_attributes()
+        if attrs.override_redirect:
+            client_window.map()
+            DISPLAY.sync()
+            return
 
+        geometry = client_window.get_geometry()
 
-def manage_client(client_window):
-    # NOTE: this needs to change
-    global FOCUSED_FRAME
+        frame_window = ROOT.create_window(
+            geometry.x, geometry.y,
+            geometry.width, geometry.height,
+            theme.BORDER_WIDTH,
+            DISPLAY.screen().root_depth,
+            X.InputOutput,
+            X.CopyFromParent,
+            override_redirect=True,
+            background_pixel=DISPLAY.screen().black_pixel,
+            border_pixel=theme.COLOR_FOCUSED,
+            event_mask=(X.EnterWindowMask | X.ButtonPressMask)
+        )
 
-    attrs = client_window.get_attributes()
-    if attrs.override_redirect:
+        client_window.reparent(frame_window, 0, 0)
+        frame_window.map()
         client_window.map()
         DISPLAY.sync()
-        return
 
-    geometry = client_window.get_geometry()
+        client = Client(client_window, tags=self.tags.current_tag)
+        frame = Frame(frame_window, client)
+        client.frame = frame  # type: ignore[attr-defined]
+        frame.client = client
 
-    frame_window = ROOT.create_window(
-        geometry.x, geometry.y,
-        geometry.width, geometry.height,
-        theme.BORDER_WIDTH,
-        DISPLAY.screen().root_depth,
-        X.InputOutput,
-        X.CopyFromParent,
-        override_redirect=True,
-        background_pixel=DISPLAY.screen().black_pixel,
-        border_pixel=theme.COLOR_FOCUSED,
-        event_mask=(X.EnterWindowMask | X.ButtonPressMask)
-    )
+        self.clients[client_window.id] = client
+        self.frames[frame_window.id] = frame
 
-    client_window.reparent(frame_window, 0, 0)
-    frame_window.map()
-    client_window.map()
-    DISPLAY.sync()
+        return client
 
-    client = Client(client_window, tags=tags.CURRENT_TAG)
-    frame = Frame(frame_window, client)
-    client.frame = frame
-    frame.client = client
+    def handle_map_request(self, event):
+        window = event.window
+        window.configure(x=0, y=0, width=500, height=500, border_width=2)
+        window.map()
+        DISPLAY.sync()
+        self.manage_client(window)
+        self.apply_layout()
 
-    # NOTE: this needs to change
-    # FOCUSED_FRAME = frame
+    def handle_enter_notify(self, event):
+        if event.detail == X.NotifyInferior:
+            return
 
-    CLIENTS[client_window.id] = client
-    FRAMES[frame_window.id] = frame
+        frame = self.frames.get(event.window.id)
+        if frame:
+            self.focused_frame = frame
+            self.focus(frame.client.window)
 
-    # apply_layout()
+    def close_window(self):
+        self.destroy_frame = self.focused_frame
 
-    return client
+        if not self.destroy_frame:
+            return
 
+        client = self.destroy_frame.client
+        if not client:
+            return
 
-def handle_map_request(event):
-    window = event.window
-    window.configure(x=0, y=0, width=500, height=500, border_width=2)
-    window.map()
-    DISPLAY.sync()
-    manage_client(window)
-    apply_layout()
+        w = client.window
 
+        try:
+            protocols = w.get_wm_protocols()
+        except BadWindow:
+            return
 
-def handle_enter_notify(event):
-    global FOCUSED_FRAME
+        try:
+            if protocols and WM_DELETE_WINDOW in protocols:
+                msg = protocol.event.ClientMessage(
+                    window=w,
+                    client_type=WM_PROTOCOLS,
+                    data=(32, [WM_DELETE_WINDOW, X.CurrentTime, 0, 0, 0])
+                )
+                w.send_event(msg, event_mask=X.NoEventMask)
+            else:
+                w.destroy()
 
-    if event.detail == X.NotifyInferior:
-        return
+            DISPLAY.flush()
+        except BadWindow:
+            return
 
-    frame = FRAMES.get(event.window.id)
-    if frame:
-        FOCUSED_FRAME = frame
-        focus(frame.client.window)
+    def handle_destroy_notify(self, event):
+        if not self.destroy_frame:
+            statusbar.draw("PYWM", self.tags)
+            return
 
+        frame = self.destroy_frame
+        self.destroy_frame = None
 
-def close_window():
-    global FOCUSED_FRAME, DESTROY_FRAME
-    DESTROY_FRAME = FOCUSED_FRAME
+        frame.window.destroy()
 
-    if not DESTROY_FRAME:
-        return
+        frame_id = frame.window.id
+        client_id = frame.client.window.id
 
-    client = DESTROY_FRAME.client
-    if not client:
-        return
+        self.frames.pop(frame_id, None)
+        self.clients.pop(client_id, None)
 
-    w = client.window
+        if len(self.frames):
+            self.apply_layout()
 
-    try:
-        protocols = w.get_wm_protocols()
-    except BadWindow:
-        # already gone
-        return
+    def handle_button_press(self, event):
+        tag = statusbar.check_tag_pressed(event)
 
-    try:
-        if protocols and WM_DELETE_WINDOW in protocols:
-            msg = protocol.event.ClientMessage(
-                window=w,
-                client_type=WM_PROTOCOLS,
-                data=(32, [WM_DELETE_WINDOW, X.CurrentTime, 0, 0, 0])
-            )
-            w.send_event(msg, event_mask=X.NoEventMask)
-        else:
-            w.destroy()
+        if tag:
+            self.tags.set_tag(tag)
+            statusbar.draw("PYWM", self.tags)
+            self.apply_layout()
 
-        DISPLAY.flush()
-    except BadWindow:
-        # window disappeared between calls
-        return
+    def resize_left(self):
+        self.tags.set_master_ratio(self.tags.get_master_ratio() - 0.05)
 
+        if len(self.frames) > 1:
+            self.apply_layout()
 
-def handle_destroy_notify(event):
-    global DESTROY_FRAME
+    def resize_right(self):
+        self.tags.set_master_ratio(self.tags.get_master_ratio() + 0.05)
 
-    if not DESTROY_FRAME:
-        statusbar.draw("PYWM")
-        return
-
-    frame = DESTROY_FRAME
-    DESTROY_FRAME = None
-
-    frame.window.destroy()
-
-    frame_id = frame.window.id
-    client_id = frame.client.window.id
-
-    # NOTE: add some protection here
-    FRAMES.pop(frame_id, None)
-    CLIENTS.pop(client_id, None)
-
-    if len(FRAMES):
-        apply_layout()
-
-
-def handle_button_press(event):
-    tag = statusbar.check_tag_pressed(event)
-
-    if tag:
-        tags.set_tag(tag)
-        statusbar.draw("PYWM")
-        apply_layout()
-
-
-def resize_left():
-    tags.set_master_ratio(tags.get_master_ratio() - 0.05)
-
-    if len(FRAMES) > 1:
-        apply_layout()
-
-
-def resize_right():
-    tags.set_master_ratio(tags.get_master_ratio() + 0.05)
-
-    if len(FRAMES) > 1:
-        apply_layout()
+        if len(self.frames) > 1:
+            self.apply_layout()
