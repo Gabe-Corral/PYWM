@@ -1,6 +1,7 @@
 from Xlib import X
 from Xlib import X, protocol
 from Xlib.error import BadWindow
+from Xlib.ext import randr
 
 from pywm.x11.connection import ROOT, DISPLAY, SCREEN
 from pywm.ui import theme
@@ -8,6 +9,7 @@ from pywm.core.window import Client, Frame
 from pywm.core.layout import tile
 from pywm.x11.atoms import WM_DELETE_WINDOW, WM_PROTOCOLS, NET_WM_NAME, UTF8_STRING
 from pywm.ui.statusbar import StatusBar
+from pywm.core.monitor import Monitor
 from pywm.core.tags import Tags
 
 
@@ -18,33 +20,86 @@ class WindowManager:
         self.focused_frame = None
         self.destroy_frame = None
         self.tags = Tags()
-        self.statusbar = None
+        self.monitors = []
+        self.current_monitor = None
 
     def prepare_manager(self):
-        sw = SCREEN.width_in_pixels
-        sh = SCREEN.height_in_pixels
+        resources = randr.get_screen_resources(ROOT)
+        # resources = randr.get_monitors(ROOT, True).monitors
+        #
+        for i in randr.get_monitors(ROOT, True).monitors:
+            print(i)
 
-        self.statusbar = StatusBar(
-            0,
-            sh - theme.BAR_HEIGHT,
-            sw,
-            theme.BAR_HEIGHT,
-            self.tags,
-        )
+        self.monitors = []
 
-        self.statusbar.draw("PYWM")
+        for output in resources.outputs:
+            print(f"OUTPUT: {output}")
+            output_info = randr.get_output_info(ROOT, output, X.CurrentTime)
+
+            # Skip disconnected outputs
+            if output_info.crtc == 0:
+                continue
+
+            crtc = randr.get_crtc_info(ROOT, output_info.crtc, X.CurrentTime)
+
+            x = crtc.x
+            y = crtc.y
+            width = crtc.width
+            height = crtc.height
+
+            tags = Tags()
+
+            monitor = Monitor(x, y, width, height, tags)
+
+            monitor.statusbar = StatusBar(
+                monitor.x,
+                monitor.y + monitor.height - theme.BAR_HEIGHT,
+                monitor.width,
+                theme.BAR_HEIGHT,
+                monitor.tags,
+            )
+
+            monitor.statusbar.draw("PYWM")
+
+            self.monitors.append(monitor)
+
+        if not self.monitors:
+            sw = SCREEN.width_in_pixels
+            sh = SCREEN.height_in_pixels
+
+            monitor = Monitor(0, 0, sw, sh, Tags())
+
+            monitor.statusbar = StatusBar(
+                0,
+                sh - theme.BAR_HEIGHT,
+                sw,
+                theme.BAR_HEIGHT,
+                monitor.tags,
+            )
+
+            monitor.statusbar.draw("PYWM")
+
+            self.monitors = [monitor]
+
+        self.current_monitor = self.monitors[0]
 
     def apply_layout(self):
-        visible_clients = {}
+        # NOTE: pass monitor and apply only to specific monitor.
+        for monitor in self.monitors:
+            visible_clients = {}
 
-        for id, c in self.clients.items():
-            if self.tags.is_visible(c):
-                visible_clients[id] = c
-                c.frame.window.map()
-            else:
-                c.frame.window.unmap()
+            for id, c in self.clients.items():
+                if getattr(c, "monitor", None) != monitor:
+                    continue
 
-        tile.apply_tiling_layout(visible_clients, self.tags)
+                if monitor.tags.is_visible(c):
+                    visible_clients[id] = c
+                    c.frame.window.map()
+                else:
+                    c.frame.window.unmap()
+
+            tile.apply_tiling_layout(visible_clients, monitor)
+
         DISPLAY.sync()
 
     def get_child_of_frame(self, frame):
@@ -65,8 +120,9 @@ class WindowManager:
             if window.get_attributes().map_state != X.IsViewable:
                 return
             window.set_input_focus(X.RevertToPointerRoot, X.CurrentTime)
-            if self.statusbar:
-                self.statusbar.draw(self.get_window_name(window))
+            monitor = self.current_monitor
+            if monitor and monitor.statusbar:
+                monitor.statusbar.draw(self.get_window_name(window))
             DISPLAY.flush()
         except BadWindow:
             return
@@ -97,6 +153,11 @@ class WindowManager:
 
         geometry = client_window.get_geometry()
 
+        cx = geometry.x + geometry.width // 2
+        cy = geometry.y + geometry.height // 2
+
+        monitor = self.get_monitor_for_point(cx, cy)
+
         frame_window = ROOT.create_window(
             geometry.x, geometry.y,
             geometry.width, geometry.height,
@@ -115,10 +176,12 @@ class WindowManager:
         client_window.map()
         DISPLAY.sync()
 
-        client = Client(client_window, tags=self.tags.current_tag)
+        client = Client(client_window, tags=monitor.tags.current_tag)
         frame = Frame(frame_window, client)
         client.frame = frame  # type: ignore[attr-defined]
         frame.client = client
+
+        client.monitor = monitor  # type: ignore[attr-defined]
 
         self.clients[client_window.id] = client
         self.frames[frame_window.id] = frame
@@ -140,6 +203,10 @@ class WindowManager:
         frame = self.frames.get(event.window.id)
         if frame:
             self.focused_frame = frame
+            monitor = getattr(frame.client, "monitor", None)
+            if monitor:
+                self.current_monitor = monitor
+                monitor.focused_client = frame.client
             self.focus(frame.client.window)
 
     def close_window(self):
@@ -176,8 +243,9 @@ class WindowManager:
 
     def handle_destroy_notify(self, event):
         if not self.destroy_frame:
-            if self.statusbar:
-                self.statusbar.draw("PYWM")
+            monitor = self.current_monitor
+            if monitor and monitor.statusbar:
+                monitor.statusbar.draw("PYWM")
             return
 
         frame = self.destroy_frame
@@ -196,23 +264,34 @@ class WindowManager:
 
     def handle_button_press(self, event):
         tag = None
-        if self.statusbar:
-            tag = self.statusbar.check_tag_pressed(event)
+        for monitor in self.monitors:
+            if monitor.statusbar:
+                tag = monitor.statusbar.check_tag_pressed(event)
+                if tag:
+                    self.current_monitor = monitor
+                    break
 
         if tag:
-            self.tags.set_tag(tag)
-            if self.statusbar:
-                self.statusbar.draw("PYWM")
+            self.current_monitor.tags.set_tag(tag)
+            if self.current_monitor.statusbar:
+                self.current_monitor.statusbar.draw("PYWM")
             self.apply_layout()
 
     def resize_left(self):
-        self.tags.set_master_ratio(self.tags.get_master_ratio() - 0.05)
+        tags = self.current_monitor.tags
+        tags.set_master_ratio(tags.get_master_ratio() - 0.05)
 
         if len(self.frames) > 1:
             self.apply_layout()
 
     def resize_right(self):
-        self.tags.set_master_ratio(self.tags.get_master_ratio() + 0.05)
-
+        tags = self.current_monitor.tags
+        tags.set_master_ratio(tags.get_master_ratio() + 0.05)
         if len(self.frames) > 1:
             self.apply_layout()
+
+    def get_monitor_for_point(self, x, y):
+        for m in self.monitors:
+            if m.contains(x, y):
+                return m
+        return self.current_monitor
