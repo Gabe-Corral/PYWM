@@ -7,7 +7,7 @@ from pywm.ui import theme
 from pywm.core.window import Client, Frame
 from pywm.core.layout import tile
 from pywm.x11.atoms import WM_DELETE_WINDOW, WM_PROTOCOLS, NET_WM_NAME, UTF8_STRING
-from pywm.ui import statusbar
+from pywm.ui.statusbar import StatusBar
 from pywm.core.tags import Tags
 
 
@@ -18,10 +18,21 @@ class WindowManager:
         self.focused_frame = None
         self.destroy_frame = None
         self.tags = Tags()
+        self.statusbar = None
 
     def prepare_manager(self):
-        statusbar.create_bar()
-        statusbar.draw("PYWM", self.tags)
+        sw = SCREEN.width_in_pixels
+        sh = SCREEN.height_in_pixels
+
+        self.statusbar = StatusBar(
+            0,
+            sh - theme.BAR_HEIGHT,
+            sw,
+            theme.BAR_HEIGHT,
+            self.tags,
+        )
+
+        self.statusbar.draw("PYWM")
 
     def apply_layout(self):
         visible_clients = {}
@@ -54,7 +65,8 @@ class WindowManager:
             if window.get_attributes().map_state != X.IsViewable:
                 return
             window.set_input_focus(X.RevertToPointerRoot, X.CurrentTime)
-            statusbar.draw(self.get_window_name(window), self.tags)
+            if self.statusbar:
+                self.statusbar.draw(self.get_window_name(window))
             DISPLAY.flush()
         except BadWindow:
             return
@@ -164,7 +176,8 @@ class WindowManager:
 
     def handle_destroy_notify(self, event):
         if not self.destroy_frame:
-            statusbar.draw("PYWM", self.tags)
+            if self.statusbar:
+                self.statusbar.draw("PYWM")
             return
 
         frame = self.destroy_frame
@@ -182,11 +195,14 @@ class WindowManager:
             self.apply_layout()
 
     def handle_button_press(self, event):
-        tag = statusbar.check_tag_pressed(event)
+        tag = None
+        if self.statusbar:
+            tag = self.statusbar.check_tag_pressed(event)
 
         if tag:
             self.tags.set_tag(tag)
-            statusbar.draw("PYWM", self.tags)
+            if self.statusbar:
+                self.statusbar.draw("PYWM")
             self.apply_layout()
 
     def resize_left(self):
