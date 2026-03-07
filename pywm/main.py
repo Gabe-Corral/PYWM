@@ -1,5 +1,11 @@
 from Xlib import X
 from Xlib.error import BadAccess
+
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from pywm.x11.connection import ROOT, DISPLAY
 from pywm.core.manager import WindowManager
 from pywm.core.keys import KeyHandler
@@ -8,7 +14,7 @@ from pywm.core import cursor
 from pywm.ui import statusbar
 
 
-def run():
+def main():
     setup_signal_handlers()
     window_manager = WindowManager()
     key_handler = KeyHandler(window_manager)
@@ -58,4 +64,4 @@ def run():
 
 
 if __name__=="__main__":
-    run()
+    main()

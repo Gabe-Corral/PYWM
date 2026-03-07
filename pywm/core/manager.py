@@ -25,11 +25,6 @@ class WindowManager:
 
     def prepare_manager(self):
         resources = randr.get_screen_resources(ROOT)
-        # resources = randr.get_monitors(ROOT, True).monitors
-        #
-        for i in randr.get_monitors(ROOT, True).monitors:
-            print(i)
-
         self.monitors = []
 
         for output in resources.outputs:
