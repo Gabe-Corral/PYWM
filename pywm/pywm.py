@@ -1,7 +1,7 @@
 from Xlib import X
 from Xlib.error import BadAccess
 from pywm.x11.connection import ROOT, DISPLAY
-from pywm.core import manager
+from pywm.core.manager import WindowManager
 from pywm.core.keys import init_keybindings, handle_key
 from pywm.core.process import setup_signal_handlers
 from pywm.core import cursor
@@ -12,7 +12,8 @@ def run():
     # NOTE: move this
     init_keybindings()
     setup_signal_handlers()
-    manager.prepare_manager()
+    window_manager = WindowManager()
+    window_manager.prepare_manager()
 
     try:
         ROOT.change_attributes(
@@ -36,15 +37,15 @@ def run():
 
         if event.type == X.MapRequest:
             # print("MAP REQUEST")
-            manager.handle_map_request(event)
+            window_manager.handle_map_request(event)
         elif event.type == X.EnterNotify:
             # print("ENTER NOTIFY")
-            manager.handle_enter_notify(event)
+            window_manager.handle_enter_notify(event)
         elif event.type == X.LeaveNotify:
             pass
             # print("LEAVE")
         elif event.type == X.KeyPress:
-            handle_key(event)
+            handle_key(event, window_manager)
             pass
         elif event.type == X.KeyRelease:
             pass
@@ -52,9 +53,9 @@ def run():
             # handle_key(event)
         elif event.type == X.DestroyNotify:
             # print("DESTORY")
-            manager.handle_destroy_notify(event)
+            window_manager.handle_destroy_notify(event)
         elif event.type == X.ButtonPress:
-            manager.handle_button_press(event)
+            window_manager.handle_button_press(event)
 
 
 if __name__=="__main__":

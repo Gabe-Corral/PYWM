@@ -1,7 +1,6 @@
 from Xlib import X, XK
 from pywm.x11.connection import DISPLAY, ROOT
 from pywm.core.actions import spawn_application
-from pywm.core import manager
 
 MOD = X.Mod4Mask  # Super key
 # MOD = X.ControlMask
@@ -40,7 +39,7 @@ def grab_key(keysym, modmask):
     DISPLAY.sync()
 
 
-def handle_key(event):
+def handle_key(event, window_manager):
     keysym = DISPLAY.keycode_to_keysym(event.detail, 0)
 
     if not (event.state & MOD):
@@ -53,10 +52,10 @@ def handle_key(event):
     elif keysym == Q:
         print("Super+Q pressed")
     elif keysym == C:
-        manager.close_window()
+        window_manager.close_window()
     elif keysym == W:
         spawn_application("thunar")
     elif keysym == H:
-        manager.resize_left()
+        window_manager.resize_left()
     elif keysym == L:
-        manager.resize_right()
+        window_manager.resize_right()
