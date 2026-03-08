@@ -15,6 +15,8 @@ class KeyHandler:
         self.Q = XK.string_to_keysym("q")
         self.H = XK.string_to_keysym("h")
         self.L = XK.string_to_keysym("l")
+        self.J = XK.string_to_keysym("j")
+        self.K = XK.string_to_keysym("k")
 
     def init_keybindings(self):
         self._grab_key(self.RETURN, self.MOD)
@@ -23,6 +25,8 @@ class KeyHandler:
         self._grab_key(self.Q, self.MOD)
         self._grab_key(self.H, self.MOD)
         self._grab_key(self.L, self.MOD)
+        self._grab_key(self.J, self.MOD)
+        self._grab_key(self.K, self.MOD)
 
     def _grab_key(self, keysym, modmask):
         keycode = DISPLAY.keysym_to_keycode(keysym)
@@ -58,3 +62,7 @@ class KeyHandler:
             self.wm.resize_left()
         elif keysym == self.L:
             self.wm.resize_right()
+        elif keysym == self.J:
+            self.wm.move_stack_left()
+        elif keysym == self.K:
+            self.wm.move_stack_right()

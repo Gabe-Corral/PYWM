@@ -293,3 +293,89 @@ class WindowManager:
 
     def handle_unmap_notify(self, event):
        print("unmap")
+
+    def move_stack_left(self):
+        monitor = self.current_monitor
+        # if len(monitor.frames) < 1:
+        #     return
+
+        if not monitor or not monitor.focused_client:
+            return
+
+        focused = monitor.focused_client
+
+        ordered = list(self.clients.items())
+        indices = [
+            i for i, (cid, c) in enumerate(ordered)
+            if getattr(c, "monitor", None) == monitor
+            and monitor.tags.is_visible(c)
+        ]
+
+        visible_clients = [ordered[i][1] for i in indices]
+
+        if focused not in visible_clients:
+            return
+
+        idx = visible_clients.index(focused)
+
+        if idx <= 0:
+            # Already far left, move to end
+            client = visible_clients.pop(idx)
+            visible_clients.append(client)
+        else:
+            # Swap with previous
+            visible_clients[idx - 1], visible_clients[idx] = (
+                visible_clients[idx],
+                visible_clients[idx - 1],
+            )
+
+        # Rebuild ordered list preserving non-visible positions
+        for pos, client in zip(indices, visible_clients):
+            ordered[pos] = (client.window.id, client)
+
+        # Rebuild clients dict with new order
+        self.clients = {cid: c for cid, c in ordered}
+
+        self.apply_layout()
+
+    def move_stack_right(self):
+        monitor = self.current_monitor
+        # if len(monitor.frames) < 1:
+        #     return
+
+        if not monitor or not monitor.focused_client:
+            return
+
+        focused = monitor.focused_client
+
+        ordered = list(self.clients.items())
+        indices = [
+            i for i, (cid, c) in enumerate(ordered)
+            if getattr(c, "monitor", None) == monitor
+            and monitor.tags.is_visible(c)
+        ]
+
+        visible_clients = [ordered[i][1] for i in indices]
+
+        if focused not in visible_clients:
+            return
+
+        idx = visible_clients.index(focused)
+
+        if idx >= len(visible_clients) - 1:
+            # Already far right, move to front
+            client = visible_clients.pop(idx)
+            visible_clients.insert(0, client)
+        else:
+            # Swap with next
+            visible_clients[idx], visible_clients[idx + 1] = (
+                visible_clients[idx + 1],
+                visible_clients[idx],
+            )
+
+        for pos, client in zip(indices, visible_clients):
+            ordered[pos] = (client.window.id, client)
+
+        self.clients = {cid: c for cid, c in ordered}
+
+        self.apply_layout()
