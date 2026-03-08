@@ -61,6 +61,8 @@ def main():
             window_manager.handle_destroy_notify(event)
         elif event.type == X.ButtonPress:
             window_manager.handle_button_press(event)
+        elif event.type == X.UnmapNotify:
+            window_manager.handle_unmap_notify(event)
 
 
 if __name__=="__main__":

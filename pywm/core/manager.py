@@ -18,7 +18,6 @@ class WindowManager:
         self.clients = {}
         self.frames = {}
         self.focused_frame = None
-        self.destroy_frame = None
         self.tags = Tags()
         self.monitors = []
         self.current_monitor = None
@@ -140,10 +139,16 @@ class WindowManager:
         return None
 
     def manage_client(self, client_window):
+        if client_window.id in self.clients:
+            return
+
+        client_window.change_attributes(
+            event_mask=X.SubstructureNotifyMask
+        )
+
         attrs = client_window.get_attributes()
         if attrs.override_redirect:
             client_window.map()
-            DISPLAY.sync()
             return
 
         geometry = client_window.get_geometry()
@@ -163,7 +168,7 @@ class WindowManager:
             override_redirect=True,
             background_pixel=DISPLAY.screen().black_pixel,
             border_pixel=theme.COLOR_FOCUSED,
-            event_mask=(X.EnterWindowMask | X.ButtonPressMask)
+            event_mask=(X.EnterWindowMask | X.ButtonPressMask | X.SubstructureNotifyMask)
         )
 
         client_window.reparent(frame_window, 0, 0)
@@ -184,10 +189,8 @@ class WindowManager:
         return client
 
     def handle_map_request(self, event):
+        # NOTE: potential errors here
         window = event.window
-        window.configure(x=0, y=0, width=500, height=500, border_width=2)
-        window.map()
-        DISPLAY.sync()
         self.manage_client(window)
         self.apply_layout()
 
@@ -205,12 +208,11 @@ class WindowManager:
             self.focus(frame.client.window)
 
     def close_window(self):
-        self.destroy_frame = self.focused_frame
-
-        if not self.destroy_frame:
+        frame = self.focused_frame
+        if not frame:
             return
 
-        client = self.destroy_frame.client
+        client = frame.client
         if not client:
             return
 
@@ -226,7 +228,7 @@ class WindowManager:
                 msg = protocol.event.ClientMessage(
                     window=w,
                     client_type=WM_PROTOCOLS,
-                    data=(32, [WM_DELETE_WINDOW, X.CurrentTime, 0, 0, 0])
+                    data=(32, [WM_DELETE_WINDOW, X.CurrentTime, 0, 0, 0]),
                 )
                 w.send_event(msg, event_mask=X.NoEventMask)
             else:
@@ -237,22 +239,20 @@ class WindowManager:
             return
 
     def handle_destroy_notify(self, event):
-        if not self.destroy_frame:
-            monitor = self.current_monitor
-            if monitor and monitor.statusbar:
-                monitor.statusbar.draw("PYWM")
+        window_id = event.window.id
+        client = self.clients.pop(window_id, None)
+        if not client:
             return
 
-        frame = self.destroy_frame
-        self.destroy_frame = None
+        frame = client.frame
+        monitor = client.monitor
+
+        self.frames.pop(frame.window.id)
 
         frame.window.destroy()
 
-        frame_id = frame.window.id
-        client_id = frame.client.window.id
-
-        self.frames.pop(frame_id, None)
-        self.clients.pop(client_id, None)
+        if monitor.focused_client == client:
+            monitor.focused_client = None
 
         if len(self.frames):
             self.apply_layout()
@@ -290,3 +290,6 @@ class WindowManager:
             if m.contains(x, y):
                 return m
         return self.current_monitor
+
+    def handle_unmap_notify(self, event):
+       print("unmap")
