@@ -29,8 +29,7 @@ class WindowManager:
 
         randr.select_input(
             ROOT,
-            randr.RRScreenChangeNotifyMask
-        )
+            randr.RRScreenChangeNotifyMask        )
 
         for output in resources.outputs:
             output_info = randr.get_output_info(ROOT, output, X.CurrentTime)

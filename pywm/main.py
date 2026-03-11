@@ -1,6 +1,5 @@
 from Xlib import X
 from Xlib.error import BadAccess
-from Xlib.ext import randr
 
 import os
 import sys
@@ -66,7 +65,10 @@ def main():
             window_manager.handle_button_press(event)
         elif event.type == X.UnmapNotify:
             window_manager.handle_unmap_notify(event)
-        elif event.type == randr.RRScreenChangeNotify:
+
+        # NOTE: figure out why we have to do this and do it correctly
+        # NOTE: also this needs to skip on startup
+        if event.__class__.__name__ == "ScreenChangeNotify":
             window_manager.handle_screen_change()
 
         now = time.time()
