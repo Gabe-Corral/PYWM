@@ -16,7 +16,7 @@ class Button:
 
 
 class StatusBar:
-    def __init__(self, x, y, width, height, tags):
+    def __init__(self, x, y, width, height, tags, widgets):
         self.x = x
         self.y = y
         self.width = width
@@ -25,6 +25,7 @@ class StatusBar:
 
         self.window = None
         self.buttons = []
+        self.widgets = widgets
 
         self._create_window()
 
@@ -52,7 +53,8 @@ class StatusBar:
         self.window.map()
         DISPLAY.sync()
 
-    def draw(self, text):
+    def draw(self, text=None):
+        # NOTE: fix the slop in this method please
         if self.window is None:
             return
 
@@ -66,6 +68,7 @@ class StatusBar:
         btn_w = 28
         btn_h = self.height
 
+        # ---- LEFT: TAG BUTTONS ----
         for i in range(self.tags.num_tags):
             mask = 1 << i
 
@@ -87,12 +90,41 @@ class StatusBar:
 
             x += btn_w
 
+        # ---- BASE TEXT (TITLE) — KEEP ORIGINAL LEFT POSITION ----
+        base_text = text or getattr(self, "title_text", "") or ""
+
+        approx_char_width = 7
+
+        text_x = x + 12
+
         self.window.draw_text(
             gc,
-            x + 12,
+            text_x,
             theme.BAR_TEXT_BASELINE,
-            text or "",
+            base_text,
         )
+
+        # ---- RIGHT: WIDGETS ----
+        # monitor = getattr(self, "monitor", None)
+        # print(monitor)
+        # widgets = []
+        # if monitor and hasattr(monitor, "widgets"):
+        #     print("HERT")
+        #     widgets = monitor.widgets
+
+        right_text = "  ".join(w.text() for w in self.widgets)
+        # right_text = "10:00pm"
+
+        if right_text:
+            right_width = len(right_text) * approx_char_width
+            right_x = self.width - right_width
+
+            self.window.draw_text(
+                gc,
+                right_x,
+                theme.BAR_TEXT_BASELINE,
+                right_text,
+            )
 
         DISPLAY.flush()
 

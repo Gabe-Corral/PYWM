@@ -10,6 +10,7 @@ class Monitor:
         self.tags = tags
         self.statusbar = None  # type: ignore[assignment]
         self.focused_client = None  # type: ignore[assignment]
+        self.widgets = []
 
     def contains(self, px, py):
         return (
