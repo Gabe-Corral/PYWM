@@ -398,25 +398,32 @@ class WindowManager:
             monitor.statusbar.draw()
 
     def handle_screen_change(self):
-        try:
-            monitor_info = randr.get_monitors(ROOT, True)
-            new_monitors = monitor_info.monitors
-        except Exception:
+        resources = randr.get_screen_resources(ROOT)
+
+        new_geometries = []
+
+        for output in resources.outputs:
+            output_info = randr.get_output_info(ROOT, output, X.CurrentTime)
+
+            if output_info.crtc == 0:
+                continue
+
+            crtc = randr.get_crtc_info(ROOT, output_info.crtc, X.CurrentTime)
+            new_geometries.append((crtc.x, crtc.y, crtc.width, crtc.height))
+
+        if not new_geometries:
             return
 
-        if not new_monitors:
-            return
-
-        if len(new_monitors) != len(self.monitors):
+        if len(new_geometries) != len(self.monitors):
             self.prepare_manager()
             self.apply_layout()
             return
 
-        for monitor, new in zip(self.monitors, new_monitors):
-            monitor.x = new.x
-            monitor.y = new.y
-            monitor.width = new.width
-            monitor.height = new.height
+        for monitor, (x, y, width, height) in zip(self.monitors, new_geometries):
+            monitor.x = x
+            monitor.y = y
+            monitor.width = width
+            monitor.height = height
 
             if monitor.statusbar and monitor.statusbar.window:
                 monitor.statusbar.window.configure(
