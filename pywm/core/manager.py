@@ -27,8 +27,12 @@ class WindowManager:
         resources = randr.get_screen_resources(ROOT)
         self.monitors = []
 
+        randr.select_input(
+            ROOT,
+            randr.RRScreenChangeNotifyMask
+        )
+
         for output in resources.outputs:
-            print(f"OUTPUT: {output}")
             output_info = randr.get_output_info(ROOT, output, X.CurrentTime)
 
             # Skip disconnected outputs
@@ -296,7 +300,7 @@ class WindowManager:
         return self.current_monitor
 
     def handle_unmap_notify(self, event):
-       print("unmap")
+        print("unmap")
 
     def move_stack_left(self):
         monitor = self.current_monitor
@@ -392,3 +396,34 @@ class WindowManager:
                 # widegt.update()
 
             monitor.statusbar.draw()
+
+    def handle_screen_change(self):
+        try:
+            monitor_info = randr.get_monitors(ROOT, True)
+            new_monitors = monitor_info.monitors
+        except Exception:
+            return
+
+        if not new_monitors:
+            return
+
+        if len(new_monitors) != len(self.monitors):
+            self.prepare_manager()
+            self.apply_layout()
+            return
+
+        for monitor, new in zip(self.monitors, new_monitors):
+            monitor.x = new.x
+            monitor.y = new.y
+            monitor.width = new.width
+            monitor.height = new.height
+
+            if monitor.statusbar and monitor.statusbar.window:
+                monitor.statusbar.window.configure(
+                    x=monitor.x,
+                    y=monitor.y + monitor.height - theme.BAR_HEIGHT,
+                    width=monitor.width,
+                    height=theme.BAR_HEIGHT,
+                )
+
+        self.apply_layout()
