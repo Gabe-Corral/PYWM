@@ -3,6 +3,7 @@ from Xlib.error import BadAccess
 
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -38,6 +39,7 @@ def main():
     except BadAccess:
         raise SystemExit("Another window manager already owns SubstructureRedirect on this DISPLAY.")
 
+    last_tick = time.time()
     while True:
         event = DISPLAY.next_event()
 
@@ -63,6 +65,11 @@ def main():
             window_manager.handle_button_press(event)
         elif event.type == X.UnmapNotify:
             window_manager.handle_unmap_notify(event)
+
+        now = time.time()
+        if now - last_tick >= 1.0:
+            window_manager.handle_tick()
+            last_tick = now
 
 
 if __name__=="__main__":

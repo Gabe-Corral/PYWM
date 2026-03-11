@@ -11,6 +11,7 @@ from pywm.x11.atoms import WM_DELETE_WINDOW, WM_PROTOCOLS, NET_WM_NAME, UTF8_STR
 from pywm.ui.statusbar import StatusBar
 from pywm.core.monitor import Monitor
 from pywm.core.tags import Tags
+from pywm.core.widgets import ClockWidget, CPUWidget, MemoryWidget
 
 
 class WindowManager:
@@ -45,12 +46,15 @@ class WindowManager:
 
             monitor = Monitor(x, y, width, height, tags)
 
+            widgets = [CPUWidget(), MemoryWidget(), ClockWidget()]
+
             monitor.statusbar = StatusBar(
                 monitor.x,
                 monitor.y + monitor.height - theme.BAR_HEIGHT,
                 monitor.width,
                 theme.BAR_HEIGHT,
                 monitor.tags,
+                widgets
             )
 
             monitor.statusbar.draw("PYWM")
@@ -379,3 +383,12 @@ class WindowManager:
         self.clients = {cid: c for cid, c in ordered}
 
         self.apply_layout()
+
+    def handle_tick(self):
+        for monitor in self.monitors:
+            widgets = monitor.statusbar.widgets
+            for widegt in widgets:
+                widegt.should_update()
+                # widegt.update()
+
+            monitor.statusbar.draw()
