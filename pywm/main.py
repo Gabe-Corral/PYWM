@@ -66,6 +66,11 @@ def main():
         elif event.type == X.UnmapNotify:
             window_manager.handle_unmap_notify(event)
 
+        # NOTE: figure out why we have to do this and do it correctly
+        # NOTE: also this needs to skip on startup
+        if event.__class__.__name__ == "ScreenChangeNotify":
+            window_manager.handle_screen_change()
+
         now = time.time()
         if now - last_tick >= 1.0:
             window_manager.handle_tick()
