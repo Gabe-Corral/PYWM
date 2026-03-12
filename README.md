@@ -68,9 +68,9 @@ For multi-monitor simulation:
 
 Demo running on Arch Linux (virtual machine):
 
-<video src="demo/demo.mp4" controls width="600">
-    Video not working.
-</video>
+![Demo](demo/demo.gif)
+![Screenshot](demo/screenshot1.png)
+![Screenshot](demo/screenshot2.png)
 
 
 ## Disclaimer
