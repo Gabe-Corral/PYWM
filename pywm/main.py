@@ -44,22 +44,16 @@ def main():
         event = DISPLAY.next_event()
 
         if event.type == X.MapRequest:
-            # print("MAP REQUEST")
             window_manager.handle_map_request(event)
         elif event.type == X.EnterNotify:
-            # print("ENTER NOTIFY")
             window_manager.handle_enter_notify(event)
         elif event.type == X.LeaveNotify:
             pass
-            # print("LEAVE")
         elif event.type == X.KeyPress:
             key_handler.handle_key(event)
         elif event.type == X.KeyRelease:
             pass
-            # print("RELEASE")
-            # handle_key(event)
         elif event.type == X.DestroyNotify:
-            # print("DESTORY")
             window_manager.handle_destroy_notify(event)
         elif event.type == X.ButtonPress:
             window_manager.handle_button_press(event)

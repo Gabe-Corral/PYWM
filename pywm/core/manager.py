@@ -7,7 +7,13 @@ from pywm.x11.connection import ROOT, DISPLAY, SCREEN
 from pywm.ui import theme
 from pywm.core.window import Client, Frame
 from pywm.core.layout import tile
-from pywm.x11.atoms import WM_DELETE_WINDOW, WM_PROTOCOLS, NET_WM_NAME, UTF8_STRING
+from pywm.x11.atoms import (
+    WM_DELETE_WINDOW,
+    WM_PROTOCOLS,
+    NET_WM_NAME,
+    UTF8_STRING,
+    WM_NAME,
+)
 from pywm.ui.statusbar import StatusBar
 from pywm.core.monitor import Monitor
 from pywm.core.tags import Tags
@@ -136,7 +142,6 @@ class WindowManager:
             except Exception:
                 return str(prop.value)
 
-        WM_NAME = DISPLAY.intern_atom('WM_NAME')
         prop = window.get_full_property(WM_NAME, X.AnyPropertyType)
         if prop and prop.value:
             if isinstance(prop.value, bytes):
