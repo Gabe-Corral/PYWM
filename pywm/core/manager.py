@@ -290,7 +290,10 @@ class WindowManager:
         # in a way that will make this sencerios easier and more readable
         client_count = 0
         for c in self.clients.values():
-            if getattr(c, "monitor", None) == self.current_monitor:
+            client_tag = c.tags
+            monitor_tag = self.current_monitor.tags.current_tag
+
+            if client_tag == monitor_tag:
                 client_count += 1
 
         if client_count > 1:
