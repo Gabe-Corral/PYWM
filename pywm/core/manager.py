@@ -284,7 +284,24 @@ class WindowManager:
                 self.current_monitor.statusbar.draw("PYWM")
             self.apply_layout()
 
+    def should_resize_frames(self):
+        # NOTE: this probably isn't ideal
+        # should consider reimplementing client/frames and monitor class
+        # in a way that will make this sencerios easier and more readable
+        client_count = 0
+        for c in self.clients.values():
+            if getattr(c, "monitor", None) == self.current_monitor:
+                client_count += 1
+
+        if client_count > 1:
+            return True
+
+        return False
+
     def resize_left(self):
+        if not self.should_resize_frames():
+            return
+
         tags = self.current_monitor.tags
         tags.set_master_ratio(tags.get_master_ratio() - 0.05)
 
@@ -292,8 +309,12 @@ class WindowManager:
             self.apply_layout()
 
     def resize_right(self):
+        if not self.should_resize_frames():
+            return
+
         tags = self.current_monitor.tags
         tags.set_master_ratio(tags.get_master_ratio() + 0.05)
+
         if len(self.frames) > 1:
             self.apply_layout()
 
