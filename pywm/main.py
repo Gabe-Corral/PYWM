@@ -12,7 +12,6 @@ from pywm.core.manager import WindowManager
 from pywm.core.keys import KeyHandler
 from pywm.core.process import setup_signal_handlers
 from pywm.core import cursor
-from pywm.ui import statusbar
 
 
 def main():

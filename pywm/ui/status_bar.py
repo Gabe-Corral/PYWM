@@ -2,7 +2,7 @@ from Xlib import X
 from dataclasses import dataclass
 
 from pywm.x11.connection import DISPLAY, ROOT
-from pywm.ui import theme
+from pywm.ui.theme import theme
 from pywm.core import cursor
 
 
@@ -40,7 +40,7 @@ class StatusBar:
             X.InputOutput,
             X.CopyFromParent,
             override_redirect=True,
-            background_pixel=theme.BAR_BG,
+            background_pixel=theme.bar_bg,
             cursor=cursor.CURSOR,
             event_mask=(
                 X.ExposureMask
@@ -61,8 +61,8 @@ class StatusBar:
         self.buttons = []
         self.window.clear_area()
 
-        gc = self.window.create_gc(foreground=theme.BAR_FG)
-        agc = self.window.create_gc(foreground=theme.BAR_ACTIVE_TAG)
+        gc = self.window.create_gc(foreground=theme.bar_fg)
+        agc = self.window.create_gc(foreground=theme.bar_active_tag)
 
         x = 0
         btn_w = 28
@@ -80,7 +80,7 @@ class StatusBar:
             self.window.draw_text(
                 gc,
                 x + 10,
-                theme.BAR_TEXT_BASELINE,
+                theme.bar_text_baseline,
                 str(i + 1),
             )
 
@@ -100,7 +100,7 @@ class StatusBar:
         self.window.draw_text(
             gc,
             text_x,
-            theme.BAR_TEXT_BASELINE,
+            theme.bar_text_baseline,
             base_text,
         )
 
@@ -122,7 +122,7 @@ class StatusBar:
             self.window.draw_text(
                 gc,
                 right_x,
-                theme.BAR_TEXT_BASELINE,
+                theme.bar_text_baseline,
                 right_text,
             )
 

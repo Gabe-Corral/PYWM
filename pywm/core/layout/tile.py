@@ -1,10 +1,10 @@
-from pywm.ui import theme
+from pywm.ui.theme import theme
 
 # def apply_tiling_layout(clients, master_ratio=0.6):
 #     clients = [i for i in clients.values()]
 
-#     screen_width = SCREEN.width_in_pixels - 2*theme.BORDER_WIDTH
-#     screen_height = SCREEN.height_in_pixels - 2*theme.BORDER_WIDTH - theme.BAR_HEIGHT
+#     screen_width = SCREEN.width_in_pixels - 2*theme.border_width
+#     screen_height = SCREEN.height_in_pixels - 2*theme.border_width - theme.bar_height
 
 
 #     if len(clients) == 1:
@@ -58,12 +58,12 @@ def apply_tiling_layout(clients, monitor):
     if not clients:
         return
 
-    outer = theme.GAP          # gap at screen edges
-    inner = theme.GAP          # gap between windows (you can make this different)
-    bw = theme.BORDER_WIDTH
+    outer = theme.gap          # gap at screen edges
+    inner = theme.gap          # gap between windows (you can make this different)
+    bw = theme.border_width
 
     sw = monitor.width
-    sh = monitor.height - theme.BAR_HEIGHT
+    sh = monitor.height - theme.bar_height
 
     # Usable area inside the OUTER gap
     ux = outer
