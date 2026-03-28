@@ -4,7 +4,7 @@ from Xlib.error import BadWindow
 from Xlib.ext import randr
 
 from pywm.x11.connection import ROOT, DISPLAY, SCREEN
-from pywm.ui import theme
+from pywm.ui.theme import theme
 from pywm.core.window import Client, Frame
 from pywm.core.layout import tile
 from pywm.x11.atoms import (
@@ -14,7 +14,7 @@ from pywm.x11.atoms import (
     UTF8_STRING,
     WM_NAME,
 )
-from pywm.ui.statusbar import StatusBar
+from pywm.ui.status_bar import StatusBar
 from pywm.core.monitor import Monitor
 from pywm.core.tags import Tags
 from pywm.core.widgets import ClockWidget, CPUWidget, MemoryWidget
@@ -59,9 +59,9 @@ class WindowManager:
 
             monitor.statusbar = StatusBar(
                 monitor.x,
-                monitor.y + monitor.height - theme.BAR_HEIGHT,
+                monitor.y + monitor.height - theme.bar_height,
                 monitor.width,
-                theme.BAR_HEIGHT,
+                theme.bar_height,
                 monitor.tags,
                 widgets
             )
@@ -78,9 +78,9 @@ class WindowManager:
 
             monitor.statusbar = StatusBar(
                 0,
-                sh - theme.BAR_HEIGHT,
+                sh - theme.bar_height,
                 sw,
-                theme.BAR_HEIGHT,
+                theme.bar_height,
                 monitor.tags,
             )
 
@@ -173,13 +173,13 @@ class WindowManager:
         frame_window = ROOT.create_window(
             geometry.x, geometry.y,
             geometry.width, geometry.height,
-            theme.BORDER_WIDTH,
+            theme.border_width,
             DISPLAY.screen().root_depth,
             X.InputOutput,
             X.CopyFromParent,
             override_redirect=True,
             background_pixel=DISPLAY.screen().black_pixel,
-            border_pixel=theme.COLOR_FOCUSED,
+            border_pixel=theme.color_focused,
             event_mask=(X.EnterWindowMask | X.ButtonPressMask | X.SubstructureNotifyMask)
         )
 
@@ -456,9 +456,9 @@ class WindowManager:
             if monitor.statusbar and monitor.statusbar.window:
                 monitor.statusbar.window.configure(
                     x=monitor.x,
-                    y=monitor.y + monitor.height - theme.BAR_HEIGHT,
+                    y=monitor.y + monitor.height - theme.bar_height,
                     width=monitor.width,
-                    height=theme.BAR_HEIGHT,
+                    height=theme.bar_height,
                 )
 
         self.apply_layout()

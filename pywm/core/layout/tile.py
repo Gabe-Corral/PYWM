@@ -1,56 +1,4 @@
-from pywm.ui import theme
-
-# def apply_tiling_layout(clients, master_ratio=0.6):
-#     clients = [i for i in clients.values()]
-
-#     screen_width = SCREEN.width_in_pixels - 2*theme.BORDER_WIDTH
-#     screen_height = SCREEN.height_in_pixels - 2*theme.BORDER_WIDTH - theme.BAR_HEIGHT
-
-
-#     if len(clients) == 1:
-#         clients[0].window.configure(
-#             x=0,
-#             y=0,
-#             width=screen_width,
-#             height=screen_height
-#         )
-#         frame = clients[0].frame.window
-#         frame.configure(
-#             x=0,
-#             y=0,
-#             width=screen_width,
-#             height=screen_height
-#         )
-#         return
-
-#     master_width = int(screen_width * master_ratio)
-#     stack_width = screen_width - master_width
-
-#     master = clients[0]
-#     stack = clients[1:]
-
-#     master.frame.window.configure(
-#         x=0,
-#         y=0,
-#         width=master_width,
-#         height=screen_height
-#     )
-
-#     stack_height = screen_height // len(stack)
-
-#     for i, client in enumerate(stack):
-#         client.frame.window.configure(
-#             x=master_width,
-#             y=i * stack_height,
-#             width=stack_width,
-#             height=stack_height
-#         )
-#         client.window.configure(
-#             x=0,
-#             y=0,
-#             width=stack_width,
-#             height=stack_height
-#         )
+from pywm.ui.theme import theme
 
 
 def apply_tiling_layout(clients, monitor):
@@ -58,14 +6,14 @@ def apply_tiling_layout(clients, monitor):
     if not clients:
         return
 
-    outer = theme.GAP          # gap at screen edges
-    inner = theme.GAP          # gap between windows (you can make this different)
-    bw = theme.BORDER_WIDTH
+    outer = theme.gap          # gap at screen edges
+    inner = theme.gap          # gap between windows
+    bw = theme.border_width
 
     sw = monitor.width
-    sh = monitor.height - theme.BAR_HEIGHT
+    sh = monitor.height - theme.bar_height
 
-    # Usable area inside the OUTER gap
+    # usable area inside the OUTER gap
     ux = outer
     uy = outer
     uw = sw - 2 * outer
@@ -82,7 +30,6 @@ def apply_tiling_layout(clients, monitor):
         client.frame.window.configure(x=x, y=y, width=fw, height=fh)
         client.window.configure(x=0, y=0, width=fw, height=fh)
 
-    # 1 window: fill usable area (no inner gaps needed)
     if len(clients) == 1:
         place(clients[0], ux, uy, uw, uh)
         return
@@ -91,7 +38,7 @@ def apply_tiling_layout(clients, monitor):
     stack = clients[1:]
     n = len(stack)
 
-    # Horizontal split with an INNER gap between master and stack
+    # horizontal split with an innger gap between master and stack
     master_ratio = monitor.tags.get_master_ratio()
     uw2 = uw - inner
     master_w = int(uw2 * master_ratio)
@@ -102,7 +49,7 @@ def apply_tiling_layout(clients, monitor):
 
     place(master, master_x, uy, master_w, uh)
 
-    # Vertical stack with INNER gaps between stacked windows
+    # vertical stack with inner gaps between stacked windows
     total_inner_gaps = (n - 1) * inner
     tile_h = (uh - total_inner_gaps) // n
 
