@@ -6,8 +6,8 @@ def apply_tiling_layout(clients, monitor):
     if not clients:
         return
 
-    outer = theme.gap          # gap at screen edges
-    inner = theme.gap          # gap between windows
+    outer = theme.gap # gap at screen edges
+    inner = theme.gap # gap between windows
     bw = theme.border_width
 
     sw = monitor.width

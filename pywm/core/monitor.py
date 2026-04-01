@@ -8,8 +8,8 @@ class Monitor:
         self.height = height
 
         self.tags = tags
-        self.statusbar = None  # type: ignore[assignment]
-        self.focused_client = None  # type: ignore[assignment]
+        self.statusbar = None
+        self.focused_client = None
         self.widgets = []
 
     def contains(self, px, py):

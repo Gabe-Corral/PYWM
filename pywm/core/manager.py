@@ -35,7 +35,8 @@ class WindowManager:
 
         randr.select_input(
             ROOT,
-            randr.RRScreenChangeNotifyMask        )
+            randr.RRScreenChangeNotifyMask
+        )
 
         for output in resources.outputs:
             output_info = randr.get_output_info(ROOT, output, X.CurrentTime)
@@ -91,7 +92,7 @@ class WindowManager:
         self.current_monitor = self.monitors[0]
 
     def apply_layout(self):
-        # NOTE: pass monitor and apply only to specific monitor.
+        # NOTE: need to pass monitor and apply only to specific monitor
         for monitor in self.monitors:
             visible_clients = {}
 
@@ -190,10 +191,10 @@ class WindowManager:
 
         client = Client(client_window, tags=monitor.tags.current_tag)
         frame = Frame(frame_window, client)
-        client.frame = frame  # type: ignore[attr-defined]
+        client.frame = frame
         frame.client = client
 
-        client.monitor = monitor  # type: ignore[attr-defined]
+        client.monitor = monitor
 
         self.clients[client_window.id] = client
         self.frames[frame_window.id] = frame
@@ -331,9 +332,8 @@ class WindowManager:
         print("unmap")
 
     def move_stack_left(self):
+        # NOTE: is this the behavior we want?
         monitor = self.current_monitor
-        # if len(monitor.frames) < 1:
-        #     return
 
         if not monitor or not monitor.focused_client:
             return
@@ -355,29 +355,25 @@ class WindowManager:
         idx = visible_clients.index(focused)
 
         if idx <= 0:
-            # Already far left, move to end
+            # already far left, move to end
             client = visible_clients.pop(idx)
             visible_clients.append(client)
         else:
-            # Swap with previous
+            # swap with previous
             visible_clients[idx - 1], visible_clients[idx] = (
                 visible_clients[idx],
                 visible_clients[idx - 1],
             )
 
-        # Rebuild ordered list preserving non-visible positions
         for pos, client in zip(indices, visible_clients):
             ordered[pos] = (client.window.id, client)
 
-        # Rebuild clients dict with new order
         self.clients = {cid: c for cid, c in ordered}
 
         self.apply_layout()
 
     def move_stack_right(self):
         monitor = self.current_monitor
-        # if len(monitor.frames) < 1:
-        #     return
 
         if not monitor or not monitor.focused_client:
             return
@@ -399,11 +395,11 @@ class WindowManager:
         idx = visible_clients.index(focused)
 
         if idx >= len(visible_clients) - 1:
-            # Already far right, move to front
+            # already far right, move to front
             client = visible_clients.pop(idx)
             visible_clients.insert(0, client)
         else:
-            # Swap with next
+            # swap with next
             visible_clients[idx], visible_clients[idx + 1] = (
                 visible_clients[idx + 1],
                 visible_clients[idx],
@@ -421,7 +417,6 @@ class WindowManager:
             widgets = monitor.statusbar.widgets
             for widegt in widgets:
                 widegt.should_update()
-                # widegt.update()
 
             monitor.statusbar.draw()
 

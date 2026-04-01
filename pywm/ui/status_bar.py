@@ -68,7 +68,7 @@ class StatusBar:
         btn_w = 28
         btn_h = self.height
 
-        # ---- LEFT: TAG BUTTONS ----
+        # Tag buttons
         for i in range(self.tags.num_tags):
             mask = 1 << i
 
@@ -90,7 +90,6 @@ class StatusBar:
 
             x += btn_w
 
-        # ---- BASE TEXT (TITLE) — KEEP ORIGINAL LEFT POSITION ----
         base_text = text or getattr(self, "title_text", "") or ""
 
         approx_char_width = 7
@@ -104,16 +103,7 @@ class StatusBar:
             base_text,
         )
 
-        # ---- RIGHT: WIDGETS ----
-        # monitor = getattr(self, "monitor", None)
-        # print(monitor)
-        # widgets = []
-        # if monitor and hasattr(monitor, "widgets"):
-        #     print("HERT")
-        #     widgets = monitor.widgets
-
         right_text = "  ".join(w.text() for w in self.widgets)
-        # right_text = "10:00pm"
 
         if right_text:
             right_width = len(right_text) * approx_char_width
