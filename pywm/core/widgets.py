@@ -2,6 +2,8 @@ import time
 from datetime import datetime
 import psutil
 
+# NOTE: not happy with this implementation of widgets
+# but will work for now
 class Widget:
     interval = 1.0
 

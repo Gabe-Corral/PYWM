@@ -84,8 +84,6 @@ Expect:
 - Incomplete EWMH compliance
 - Potential crashes
 
-Use at your own risk.
-
 
 ## Roadmap
 

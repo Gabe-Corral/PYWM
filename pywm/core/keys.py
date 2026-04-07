@@ -18,6 +18,19 @@ class KeyHandler:
         self.J = XK.string_to_keysym("j")
         self.K = XK.string_to_keysym("k")
 
+        self.init_keybindings()
+
+        self.keymap = {
+            self.RETURN: lambda: spawn_application("alacritty"),
+            self.Q: lambda: print("Super+Q pressed"),
+            self.C: self.wm.close_window,
+            self.W: lambda: spawn_application("thunar"),
+            self.H: self.wm.resize_left,
+            self.L: self.wm.resize_right,
+            self.J: self.wm.move_stack_left,
+            self.K: self.wm.move_stack_right,
+        }
+
     def init_keybindings(self):
         self._grab_key(self.RETURN, self.MOD)
         self._grab_key(self.C, self.MOD)
@@ -50,19 +63,6 @@ class KeyHandler:
         if not (event.state & self.MOD):
             return
 
-        if keysym == self.RETURN:
-            spawn_application("alacritty")
-        elif keysym == self.Q:
-            print("Super+Q pressed")
-        elif keysym == self.C:
-            self.wm.close_window()
-        elif keysym == self.W:
-            spawn_application("thunar")
-        elif keysym == self.H:
-            self.wm.resize_left()
-        elif keysym == self.L:
-            self.wm.resize_right()
-        elif keysym == self.J:
-            self.wm.move_stack_left()
-        elif keysym == self.K:
-            self.wm.move_stack_right()
+        action = self.keymap.get(keysym)
+        if action:
+            action()

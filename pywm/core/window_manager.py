@@ -17,6 +17,7 @@ from pywm.x11.atoms import (
 from pywm.ui.status_bar import StatusBar
 from pywm.core.monitor import Monitor
 from pywm.core.tags import Tags
+from pywm.core.keys import KeyHandler
 from pywm.core.widgets import ClockWidget, CPUWidget, MemoryWidget
 
 
@@ -28,6 +29,18 @@ class WindowManager:
         self.tags = Tags()
         self.monitors = []
         self.current_monitor = None
+        self.key_handler = KeyHandler(self)
+
+        self.event_handlers = {
+            X.MapRequest: self.handle_map_request,
+            X.EnterNotify: self.handle_enter_notify,
+            X.LeaveNotify: print,
+            X.KeyPress: self.key_handler.handle_key,
+            X.KeyRelease: print,
+            X.DestroyNotify: self.handle_destroy_notify,
+            X.ButtonPress: self.handle_button_press,
+            X.UnmapNotify: self.handle_unmap_notify,
+        }
 
     def prepare_manager(self):
         resources = randr.get_screen_resources(ROOT)
@@ -41,7 +54,7 @@ class WindowManager:
         for output in resources.outputs:
             output_info = randr.get_output_info(ROOT, output, X.CurrentTime)
 
-            # Skip disconnected outputs
+            # skip disconnected outputs
             if output_info.crtc == 0:
                 continue
 
@@ -211,23 +224,19 @@ class WindowManager:
         if event.detail == X.NotifyInferior:
             return
 
-        frame = self.frames.get(event.window.id)
+        frame = self.frames.get(event.window.id, None)
         if frame:
             self.focused_frame = frame
-            monitor = getattr(frame.client, "monitor", None)
-            if monitor:
-                self.current_monitor = monitor
-                monitor.focused_client = frame.client
+            monitor = frame.client.monitor
+            self.current_monitor = monitor
+            monitor.focused_client = frame.client
             self.focus(frame.client.window)
 
     def close_window(self):
         frame = self.focused_frame
         if not frame:
             return
-
         client = frame.client
-        if not client:
-            return
 
         w = client.window
 
@@ -270,25 +279,22 @@ class WindowManager:
         if len(self.frames):
             self.apply_layout()
 
-    def handle_button_press(self, event):
-        tag = None
-        for monitor in self.monitors:
-            if monitor.statusbar:
-                tag = monitor.statusbar.check_tag_pressed(event)
-                if tag:
-                    self.current_monitor = monitor
-                    break
+    def switch_tag(self, tag, monitor):
+        self.current_monitor = monitor
+        self.current_monitor.tags.set_tag(tag)
+        self.current_monitor.statusbar.draw("PYWM")
+        self.apply_layout()
 
-        if tag:
-            self.current_monitor.tags.set_tag(tag)
-            if self.current_monitor.statusbar:
-                self.current_monitor.statusbar.draw("PYWM")
-            self.apply_layout()
+    def handle_button_press(self, event):
+        for monitor in self.monitors:
+            tag = monitor.statusbar.check_tag_pressed(event)
+            if tag:
+                self.switch_tag(tag, monitor)
 
     def should_resize_frames(self):
-        # NOTE: this probably isn't ideal
+        # NOTE: this is ugly and bad
         # should consider reimplementing client/frames and monitor class
-        # in a way that will make this sencerios easier and more readable
+        # in a way that will make these sencerios easier and more readable
         client_count = 0
         for c in self.clients.values():
             client_tag = c.tags
@@ -433,9 +439,6 @@ class WindowManager:
 
             crtc = randr.get_crtc_info(ROOT, output_info.crtc, X.CurrentTime)
             new_geometries.append((crtc.x, crtc.y, crtc.width, crtc.height))
-
-        if not new_geometries:
-            return
 
         if len(new_geometries) != len(self.monitors):
             self.prepare_manager()
